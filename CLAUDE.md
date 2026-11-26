@@ -149,6 +149,8 @@ _No results yet._ One line per instrument × method: params · fit quality · ou
 - Alpaca keys: user must add `ALPACA_API_KEY_ID` / `ALPACA_API_SECRET_KEY` to `.env` (local) or the
   cloud environment's secrets. Until then equities stays blocked. (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
+- GitHub default branch came out as `agent/quant` (first ref to land on the empty repo). User to set it to
+  `main` in GitHub → Settings → General → Default branch. Until then every PR must target `main` explicitly. (open)
 
 ## 8. How to run
 

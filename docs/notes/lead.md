@@ -19,3 +19,6 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 - Coinbase `matches.side` is the maker side → aggressor = opposite (flagged in crypto brief).
 - Equities default names AAPL, MSFT, NVDA beside SPY.
 - Alpaca keys: user didn't choose local vs cloud secrets yet; loader supports both and skips cleanly if absent.
+
+### 2026-11-26 — problem: GitHub default branch
+- Pushing to the empty repo made `agent/quant` the default branch; no tool here can change it. Asked the user to set `main`.
