@@ -282,3 +282,17 @@ def test_pull_writes_store_and_reports_failures(cfg: dict, tmp_path: Path) -> No
     stored = storage.read_range("alpaca", "SPY", "trades", root=tmp_path)
     assert len(stored) == 1 and schema.validate(stored, "trades") == []
     assert out["window_utc"] == ["2026-11-25T14:30:00Z", "2026-11-25T21:00:00Z"]
+
+
+def test_trade_conditions_populated(cfg: dict) -> None:
+    loader, _ = _loader(cfg, [FakeResponse(200, _fixture("alpaca_trades_page1.json")),
+                              FakeResponse(200, _fixture("alpaca_trades_page2.json"))])
+    df = loader.fetch("trades", "SPY", START, END)
+    assert df["conditions"].tolist()[:2] == ["@", "@,I"]
+    assert schema.validate(df, "trades") == []
+
+
+def test_join_conditions() -> None:
+    assert alpaca.join_conditions(["@", " ", "I"]) == "@,I"
+    assert alpaca.join_conditions([" "]) is None
+    assert alpaca.join_conditions(None) is None

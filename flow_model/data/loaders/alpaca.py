@@ -142,11 +142,18 @@ def frac_digits(ts: str) -> int:
     return len(frac.rstrip("Z").split("+")[0].split("-")[0])
 
 
+def join_conditions(codes: list[str] | None) -> str | None:
+    """Alpaca condition list -> comma-joined string (codes stripped; blanks removed; null if none)."""
+    kept = [str(c).strip() for c in (codes or []) if str(c).strip()]
+    return ",".join(kept) if kept else None
+
+
 def parse_trades(rows: list[dict[str, Any]], symbol: str, venue: str) -> pd.DataFrame:
     """Alpaca trade objects -> ``trades`` schema. No aggressor flag -> ``side = 0``.
 
-    Kept: ``t`` -> ts, ``p`` -> price, ``s`` -> size, ``i`` -> trade_id.
-    Dropped: ``x`` (exchange code, always IEX here), ``c`` (condition codes), ``z`` (tape A/B/C).
+    Kept: ``t`` -> ts, ``p`` -> price, ``s`` -> size, ``i`` -> trade_id, ``c`` -> conditions
+    (codes comma-joined, stripped; null if none). Dropped: ``x`` (exchange code, always IEX here),
+    ``z`` (tape A/B/C).
     """
     if not rows:
         return schema.empty_frame("trades")
@@ -160,6 +167,7 @@ def parse_trades(rows: list[dict[str, Any]], symbol: str, venue: str) -> pd.Data
             "size": [float(r["s"]) for r in rows],
             "side": 0,
             "trade_id": [None if r.get("i") is None else str(r["i"]) for r in rows],
+            "conditions": [join_conditions(r.get("c")) for r in rows],
             "recv_ts": pd.NaT,
         }
     )
