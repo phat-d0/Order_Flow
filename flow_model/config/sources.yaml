@@ -31,9 +31,18 @@ alpaca:
 
 dukascopy:
   base_url: "https://datafeed.dukascopy.com/datafeed"
-  price_scale: 100000                # EURUSD points per unit price
-  request_pause_s: 0.5
-  ts_precision: "ms"
+  price_scale:                       # points per unit price, per symbol (EURUSD 5 decimals)
+    EURUSD: 100000
+  request_pause_s: 2.0               # pause before every request after the first (sequential only)
+  backoff_s: [30, 60, 120, 300]      # waits after a 429/5xx/network error; then the hour is marked failed
+  retry_statuses: [429, 500, 502, 503, 504]
+  empty_statuses: [404]              # treated as "no ticks in this hour" (200 + empty body is too)
+  timeout_s: 60
+  user_agent: "order-flow-research/0.1 (research use; sequential, paced)"
+  check_symbol: "EURUSD"
+  check_lag_hours: 3                 # check() probes an hour at least this old (latest hours may not be published)
+  ts_precision: "ms"                 # ms offset within the hour; source clock = Dukascopy server time (UTC)
+  volume_note: "Dukascopy's own top-of-book liquidity, not market volume"
 
 yfinance:
   interval: "1m"
