@@ -53,6 +53,9 @@ Full, binding detail lives in **[`docs/CONTRACTS.md`](docs/CONTRACTS.md)**. Summ
 - Flow: Lead sends a task → role commits to `agent/<role>`, pushes, opens a PR into `main`, and messages
   the Lead with a report → Lead reviews against `docs/CONTRACTS.md` → Lead merges → Lead merges each
   agent's notes into this file.
+- Live sessions (2026-11-26): Lead `session_01UShqQxEUYri99o8V9nQf5v` · Quant `session_01UShqQuuv3rPwhGtQRHZdQz` ·
+  Crypto `session_01UShqQvjfBeDdFx7xMFCUno` · Equities `session_01UShqQxPyZ8BYKLT4a6gHGh` ·
+  Commodities `session_01UShqQxCdBDKkumBK9PwNxm` · FX `session_01UShqQyHH1pGM91E48Bhivw` · UI: not started (Phase 6).
 - `main` is the integration branch. `claude/elegant-wozniak-nl3pae` is the Lead session's working branch
   and is kept equal to `main`.
 

@@ -30,3 +30,6 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 ### 2026-11-26 — decision: Alpaca auth
 - User declined the credential form; will add keys themselves. Loader must accept env-var secret OR
   proxy-injected `APCA-API-SECRET-KEY` (send placeholder). Key ID from env var `ALPACA_API_KEY_ID`.
+
+### 2026-11-26 — done: Phase 2+3 sessions spawned
+- Quant, Crypto, Equities, Commodities, FX sessions created on agent/<role>, each briefed to PR into main and message the Lead. IDs in CLAUDE.md §3.
