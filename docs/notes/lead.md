@@ -22,3 +22,11 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 
 ### 2026-11-26 — problem: GitHub default branch
 - Pushing to the empty repo made `agent/quant` the default branch; no tool here can change it. Asked the user to set `main`.
+
+### 2026-11-26 — finding: network policy
+- All data hosts were proxy-blocked (CONNECT 403). User approved adding 8 exact hosts (see CLAUDE.md §4).
+- Re-probe: Coinbase REST 200, Binance archive 200, Alpaca 401 (no keys), Dukascopy 429, Yahoo chart 429.
+
+### 2026-11-26 — decision: Alpaca auth
+- User declined the credential form; will add keys themselves. Loader must accept env-var secret OR
+  proxy-injected `APCA-API-SECRET-KEY` (send placeholder). Key ID from env var `ALPACA_API_KEY_ID`.

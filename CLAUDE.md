@@ -29,8 +29,8 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 | Phase | Owner | State |
 |---|---|---|
 | 1. Scaffold, memory, contracts, schemas, agent defs | Lead | **done** (2026-11-26) |
-| 2. Verify sources, data-sources log, start recorders | Crypto / Equities / Commodities / FX | next — awaiting user go-ahead |
-| 3. Build `core/`, pass quality gate on simulated data | Quant | next (runs in parallel with 2) |
+| 2. Verify sources, data-sources log, start recorders | Crypto / Equities / Commodities / FX | **in progress** (role sessions started 2026-11-26) |
+| 3. Build `core/`, pass quality gate on simulated data | Quant | **in progress** (parallel with 2) |
 | 4. Asset agents run core methods allowed by tier | asset agents | not started |
 | 5. `exports/impact_params.json` + OU-project hookup doc | Lead | not started |
 | 6. Streamlit dashboard on real results | UI | not started |
@@ -38,8 +38,8 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** nothing.
-**Next:** user go-ahead for Phases 2+3 → Lead spawns role sessions (see §3 "Team").
+**In progress:** Phases 2+3 — role sessions Quant, Crypto, Equities, Commodities, FX (UI waits for Phase 6).
+**Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts
 
@@ -119,11 +119,16 @@ owning agent's notes.
 
 | Source | Endpoint | Status | Returned / limits | Owner |
 |---|---|---|---|---|
-| Coinbase Exchange WS | `wss://ws-feed.exchange.coinbase.com` | untested | — | crypto |
-| Binance archive | `https://data.binance.vision/` | untested | — | crypto |
-| Alpaca market data | `https://data.alpaca.markets/v2/stocks/...` (feed=iex) | untested; needs keys | — | equities |
-| Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/...bi5` | untested | — | fx |
-| yfinance | Yahoo chart API via `yfinance` | untested | — | commodities, fx |
+| Coinbase Exchange WS/REST | `wss://ws-feed.exchange.coinbase.com`, `https://api.exchange.coinbase.com` | reachable (REST 200, 2026-11-26) | channel auth requirements TBD | crypto |
+| Binance archive | `https://data.binance.vision/` | reachable (200, 2026-11-26) | file coverage TBD | crypto |
+| Alpaca market data | `https://data.alpaca.markets/v2/stocks/...` (feed=iex) | reachable, **401 until keys added** | user adding keys in env settings | equities |
+| Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/...bi5` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | fx |
+| yfinance | `query1/query2.finance.yahoo.com`, `fc.yahoo.com` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | commodities, fx |
+
+Network: the `Order_Flow` cloud environment is limited-access. On 2026-11-26 every data host returned proxy
+403 (CONNECT refused); the user approved adding exactly these hosts: ws-feed.exchange.coinbase.com,
+api.exchange.coinbase.com, data.binance.vision, data.alpaca.markets, datafeed.dukascopy.com,
+query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host needs the Lead to request it.
 
 ## 5. Decisions log
 
@@ -137,6 +142,8 @@ owning agent's notes.
 | 2026-11-26 | Timestamps int64 ns UTC everywhere; each loader records source precision in config | Mixed ms/µs/ns sources | Lead |
 | 2026-11-26 | Alpaca keys read from env (`.env` locally, or env secrets in cloud); loader skips cleanly if absent | Keys never pass through chat | Lead |
 | 2026-11-26 | Equities default set SPY, AAPL, MSFT, NVDA | "SPY + 2–3 liquid names" | Lead |
+| 2026-11-26 | Data hosts added to the Order_Flow environment allowlist (exact hosts only) | All were proxy-blocked; user approved | Lead |
+| 2026-11-26 | Alpaca auth: `ALPACA_API_KEY_ID` env var + secret either as env var `ALPACA_API_SECRET_KEY` or as a network secret on header `APCA-API-SECRET-KEY` (proxy injects; loader sends a placeholder) | Network secrets only accept *-KEY/TOKEN header names; user adds keys themselves | Lead |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
@@ -146,8 +153,10 @@ _No results yet._ One line per instrument × method: params · fit quality · ou
 ## 7. Known issues and open questions
 
 - Multi-day recording needs an always-on host; cloud captures are short. (open)
-- Alpaca keys: user must add `ALPACA_API_KEY_ID` / `ALPACA_API_SECRET_KEY` to `.env` (local) or the
-  cloud environment's secrets. Until then equities stays blocked. (open)
+- Alpaca keys: user is adding them in the Order_Flow environment settings (key ID as env var
+  `ALPACA_API_KEY_ID`; secret as env var `ALPACA_API_SECRET_KEY` or network secret on `APCA-API-SECRET-KEY`).
+  New sessions pick them up; until then equities is blocked. (open)
+- Dukascopy and Yahoo returned 429 on the first probe from the cloud. (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
 - GitHub default branch came out as `agent/quant` (first ref to land on the empty repo). User to set it to
   `main` in GitHub → Settings → General → Default branch. Until then every PR must target `main` explicitly. (open)

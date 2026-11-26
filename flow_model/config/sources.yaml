@@ -20,8 +20,11 @@ binance:
 alpaca:
   data_url: "https://data.alpaca.markets/v2"
   feed: "iex"
-  key_env: "ALPACA_API_KEY_ID"
-  secret_env: "ALPACA_API_SECRET_KEY"
+  key_env: "ALPACA_API_KEY_ID"           # env var (identifier)
+  secret_env: "ALPACA_API_SECRET_KEY"     # env var, OR network secret injected by the cloud proxy
+  secret_header: "APCA-API-SECRET-KEY"
+  key_header: "APCA-API-KEY-ID"
+  secret_placeholder: "injected-by-proxy"  # sent when the secret env var is absent; the proxy replaces it
   max_requests_per_min: 200          # free plan limit; verify
   page_limit: 10000
   ts_precision: "ns"
