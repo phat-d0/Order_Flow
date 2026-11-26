@@ -63,3 +63,12 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
   key or secret, pagination with page_token, schema validity, ns precision, half-open end, quote cleaning
   counts, 429/5xx backoff, retries exhausted, 401 fail-fast, no request without keys, check() never raises,
   rate limiter spacing, RTH window across DST, last-full-day selection, pull → store.
+
+### 2026-11-26 — done: trade condition codes kept in `trades.conditions` (Lead decision)
+- Lead merged PR #1 and added a nullable `conditions` (string) column to the trades schema (commit cad51a3).
+- `parse_trades` fills it from Alpaca `c`: each code is stripped, blanks are removed, the rest are comma-joined
+  (e.g. `["@", "I"]` → `"@,I"`; `[" "]` or missing → null). `x` and `z` are still dropped.
+- Phase 4 will use it to filter odd-lot (`I`), out-of-sequence and correction prints before the impact fits.
+- Tests: `test_trade_conditions_populated`, `test_join_conditions`. Full suite: 40 passed.
+- Lead also confirmed: fixtures dir `flow_model/tests/fixtures/equities/` is ours; `make pull-equities` exists;
+  keep RTH times consistent with `seasonality.equities_session` in core.yaml.
