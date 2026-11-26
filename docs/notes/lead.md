@@ -42,3 +42,8 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 
 ### 2026-11-26 — done: merged PR #2 (Equities: conditions column populated)
 - 40 tests pass. Equities on standby for Phase 4.
+
+### 2026-11-26 — done: reviewed + merged PR #3 (Commodities: yfinance loader, appender, rolls)
+- Mocked tests only (no live network), config-driven, idempotent appender; 64 tests pass on main.
+- Findings folded into CLAUDE.md §4/§5/§7 (30-day 1m limit, crumb 429 harmless, zeroed open-bar volumes, roll offsets).
+- Config additions accepted: sources.yaml yfinance.*, instruments.yaml roll_rule for CL=F/GC=F.

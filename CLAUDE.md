@@ -38,7 +38,7 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (loader ready incl. conditions; blocked on keys; standby).
+**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby).
 **Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts
@@ -126,7 +126,7 @@ owning agent's notes.
 | Binance archive | `https://data.binance.vision/` | reachable (200, 2026-11-26) | file coverage TBD | crypto |
 | Alpaca market data | `https://data.alpaca.markets/v2/stocks/{sym}/trades|quotes` (feed=iex) | loader merged (PR #1); **401 — no keys yet** | ns timestamps per docs (confirm on first pull); one-sided/crossed IEX quotes dropped + counted; run `make pull-equities` once keys exist | equities |
 | Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/...bi5` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | fx |
-| yfinance | `query1/query2.finance.yahoo.com`, `fc.yahoo.com` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | commodities, fx |
+| yfinance | `query1/query2.finance.yahoo.com/v8/finance/chart/<sym>?interval=1m` | **works** (200; PR #3). Crumb endpoint 429s but yfinance proceeds without it; fc.yahoo.com 404 | 1m history = last 30 days (422 beyond); ≤8 days/request (config 7); epoch-s bar-open stamps; ~29k bars/symbol/29d; volume present for CL=F, GC=F, 6E=F; minutes with no trades come back as NaN rows (dropped + counted); **Yahoo zeroes the volume of each session-open bar** except the latest day → appender never overwrites positive volume with 0 | commodities, fx |
 
 Network: the `Order_Flow` cloud environment is limited-access. On 2026-11-26 every data host returned proxy
 403 (CONNECT refused); the user approved adding exactly these hosts: ws-feed.exchange.coinbase.com,
@@ -149,6 +149,7 @@ query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host n
 | 2026-11-26 | Alpaca auth: `ALPACA_API_KEY_ID` env var + secret either as env var `ALPACA_API_SECRET_KEY` or as a network secret on header `APCA-API-SECRET-KEY` (proxy injects; loader sends a placeholder) | Network secrets only accept *-KEY/TOKEN header names; user adds keys themselves | Lead |
 | 2026-11-26 | Trades schema gains nullable `conditions` (comma-joined source codes) | Equities needs Alpaca `c` to filter odd-lot/out-of-sequence trades; Databento has flags too | Lead |
 | 2026-11-26 | Agents own `flow_model/tests/fixtures/<role>/` | Equities PR #1 needed committed JSON fixtures | Lead |
+| 2026-11-26 | Bar appender run daily (cron `17 6 * * *` UTC on an always-on machine) | yfinance keeps only 30 days of 1m bars; daily run also captures session-open volumes before Yahoo zeroes them | Commodities |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
@@ -162,7 +163,9 @@ _No results yet._ One line per instrument × method: params · fit quality · ou
   `ALPACA_API_KEY_ID`; secret as env var `ALPACA_API_SECRET_KEY` or network secret on `APCA-API-SECRET-KEY`).
   New sessions pick them up; until then equities is blocked. (open)
 - Alpaca open items (equities notes): IEX quote size units (shares vs lots) to confirm on first pull; IEX BBO ≠ NBBO.
-- Dukascopy and Yahoo returned 429 on the first probe from the cloud. (open)
+- Dukascopy returned 429 on the first probe from the cloud. (open) Yahoo: resolved — only the crumb endpoint 429s.
+- yfinance 1m quirks for Phase 4: the 29-day backfill has ~20 zero-volume session-open bars per symbol (source artifact); BVC/Kyle λ must exclude/flag them and drop roll bars. No exchange holiday calendar yet → holidays show as gaps. (open)
+- Roll offsets (Yahoo 1m CL=F rolls 2 bdays before last trade; GC=F 3 bdays before FND) rest on one observed roll each; re-verify ~2026-12-17 (CL) and ~2027-01-26 (GC). (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
 - GitHub default branch came out as `agent/quant` (first ref to land on the empty repo). User to set it to
   `main` in GitHub → Settings → General → Default branch. Until then every PR must target `main` explicitly. (open)
