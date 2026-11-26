@@ -69,3 +69,9 @@ All requests sequential, ≥30 s apart after the first failure. Times UTC.
 Options for the Lead: (a) run the CLI on the always-on machine (home IP, not the shared cloud egress);
 (b) allow `wiki.dukascopy.com` so we can read their export rules; (c) retry here later at low rate.
 Command: `.venv/bin/python -m flow_model.data.loaders.dukascopy --symbol EURUSD --start 2026-11-23 --end 2026-11-25`.
+
+### 2026-11-26 — decision (Lead): PR #5 merged; Dukascopy plan
+- Stop pulling Dukascopy from the cloud. The user's always-on machine runs the CLI (option a).
+- At the start of Phase 4: ONE low-rate retry of a single hour from the cloud; if refused, report EURUSD Tier B as blocked.
+- No wiki.dukascopy.com allowlist request. 6E=F plan accepted (import `yfinance_bars`, 1m overlap).
+- Standing by for the Phase 4 message.
