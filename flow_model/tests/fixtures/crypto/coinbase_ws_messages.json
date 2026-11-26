@@ -1,0 +1,13 @@
+[
+  {"type": "subscriptions", "channels": [{"name": "matches", "product_ids": ["BTC-USD"], "account_ids": null}, {"name": "level2_50", "product_ids": ["BTC-USD"], "account_ids": null}]},
+  {"type": "error", "message": "Failed to subscribe", "reason": "level2, level3, and full channels now require authentication. https://docs.cloud.coinbase.com/exchange/docs/websocket-auth"},
+  {"type": "snapshot", "product_id": "BTC-USD", "time": "2026-11-26T07:44:39.037737Z", "bids": [["60558.65", "0.30953486"], ["60558.00", "1.00000000"], ["60550.00", "2.50000000"]], "asks": [["60558.66", "0.03607992"], ["60559.83", "0.00016745"], ["60560.00", "0.75000000"]]},
+  {"type": "last_match", "trade_id": 1148200530, "maker_order_id": "a", "taker_order_id": "b", "side": "buy", "size": "0.00000004", "price": "60558.65", "product_id": "BTC-USD", "sequence": 140327602297, "time": "2026-11-26T07:44:39.100000Z"},
+  {"type": "match", "trade_id": 1148200531, "maker_order_id": "c", "taker_order_id": "d", "side": "sell", "size": "0.01000000", "price": "60558.66", "product_id": "BTC-USD", "sequence": 140327602395, "time": "2026-11-26T07:44:39.200000Z"},
+  {"type": "ticker", "sequence": 140327602396, "product_id": "BTC-USD", "price": "60558.66", "best_bid": "60558.65", "best_bid_size": "0.30953486", "best_ask": "60558.66", "best_ask_size": "0.02607992", "side": "buy", "time": "2026-11-26T07:44:39.200000Z", "trade_id": 1148200531, "last_size": "0.01000000"},
+  {"type": "l2update", "product_id": "BTC-USD", "changes": [["sell", "60558.66", "0.00000000"], ["buy", "60558.70", "0.20000000"]], "time": "2026-11-26T07:44:39.250000Z"},
+  {"type": "l2update", "product_id": "BTC-USD", "changes": [["buy", "60500.00", "1.00000000"]], "time": "2026-11-26T07:44:39.300000Z"},
+  {"type": "match", "trade_id": 1148200535, "maker_order_id": "e", "taker_order_id": "f", "side": "buy", "size": "0.02000000", "price": "60558.70", "product_id": "BTC-USD", "sequence": 140327602500, "time": "2026-11-26T07:44:39.400000Z"},
+  {"type": "match", "trade_id": 1148200535, "maker_order_id": "e", "taker_order_id": "f", "side": "buy", "size": "0.02000000", "price": "60558.70", "product_id": "BTC-USD", "sequence": 140327602500, "time": "2026-11-26T07:44:39.400000Z"},
+  {"type": "heartbeat", "last_trade_id": 1148200536, "product_id": "BTC-USD", "sequence": 140327602600, "time": "2026-11-26T07:44:40.000000Z"}
+]
