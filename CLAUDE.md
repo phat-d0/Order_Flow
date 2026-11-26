@@ -38,7 +38,7 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — role sessions Quant, Crypto, Equities, Commodities, FX (UI waits for Phase 6).
+**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (loader ready incl. conditions; blocked on keys; standby).
 **Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts
@@ -53,6 +53,9 @@ Full, binding detail lives in **[`docs/CONTRACTS.md`](docs/CONTRACTS.md)**. Summ
 - Flow: Lead sends a task → role commits to `agent/<role>`, pushes, opens a PR into `main`, and messages
   the Lead with a report → Lead reviews against `docs/CONTRACTS.md` → Lead merges → Lead merges each
   agent's notes into this file.
+- Live sessions (2026-11-26): Lead `session_01UShqQxEUYri99o8V9nQf5v` · Quant `session_01UShqQuuv3rPwhGtQRHZdQz` ·
+  Crypto `session_01UShqQvjfBeDdFx7xMFCUno` · Equities `session_01UShqQxPyZ8BYKLT4a6gHGh` ·
+  Commodities `session_01UShqQxCdBDKkumBK9PwNxm` · FX `session_01UShqQyHH1pGM91E48Bhivw` · UI: not started (Phase 6).
 - `main` is the integration branch. `claude/elegant-wozniak-nl3pae` is the Lead session's working branch
   and is kept equal to `main`.
 
@@ -79,7 +82,7 @@ flow_model/
 
 ### Data schemas (`flow_model/data/schema.py`)
 All timestamps `timestamp[ns, tz=UTC]`. Every row carries `symbol`, `source`, `venue`.
-- **Trade**: `ts, symbol, source, venue, price, size, side(int8: +1 buyer-initiated, −1 seller, 0 unknown), trade_id, recv_ts`
+- **Trade**: `ts, symbol, source, venue, price, size, side(int8: +1 buyer-initiated, −1 seller, 0 unknown), trade_id, conditions, recv_ts`
 - **Quote** (top of book): `ts, symbol, source, venue, bid_px, bid_sz, ask_px, ask_sz, recv_ts` (sizes may be NaN)
 - **L2Update**: `ts, symbol, source, venue, book_side(int8 +1 bid / −1 ask), price, size(new level total; 0 = removed), is_snapshot, recv_ts`
 - **Bar**: `ts(bar open), symbol, source, venue, interval, open, high, low, close, volume`
@@ -121,7 +124,7 @@ owning agent's notes.
 |---|---|---|---|---|
 | Coinbase Exchange WS/REST | `wss://ws-feed.exchange.coinbase.com`, `https://api.exchange.coinbase.com` | reachable (REST 200, 2026-11-26) | channel auth requirements TBD | crypto |
 | Binance archive | `https://data.binance.vision/` | reachable (200, 2026-11-26) | file coverage TBD | crypto |
-| Alpaca market data | `https://data.alpaca.markets/v2/stocks/...` (feed=iex) | reachable, **401 until keys added** | user adding keys in env settings | equities |
+| Alpaca market data | `https://data.alpaca.markets/v2/stocks/{sym}/trades|quotes` (feed=iex) | loader merged (PR #1); **401 — no keys yet** | ns timestamps per docs (confirm on first pull); one-sided/crossed IEX quotes dropped + counted; run `make pull-equities` once keys exist | equities |
 | Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/...bi5` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | fx |
 | yfinance | `query1/query2.finance.yahoo.com`, `fc.yahoo.com` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | commodities, fx |
 
@@ -144,6 +147,8 @@ query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host n
 | 2026-11-26 | Equities default set SPY, AAPL, MSFT, NVDA | "SPY + 2–3 liquid names" | Lead |
 | 2026-11-26 | Data hosts added to the Order_Flow environment allowlist (exact hosts only) | All were proxy-blocked; user approved | Lead |
 | 2026-11-26 | Alpaca auth: `ALPACA_API_KEY_ID` env var + secret either as env var `ALPACA_API_SECRET_KEY` or as a network secret on header `APCA-API-SECRET-KEY` (proxy injects; loader sends a placeholder) | Network secrets only accept *-KEY/TOKEN header names; user adds keys themselves | Lead |
+| 2026-11-26 | Trades schema gains nullable `conditions` (comma-joined source codes) | Equities needs Alpaca `c` to filter odd-lot/out-of-sequence trades; Databento has flags too | Lead |
+| 2026-11-26 | Agents own `flow_model/tests/fixtures/<role>/` | Equities PR #1 needed committed JSON fixtures | Lead |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
@@ -156,6 +161,7 @@ _No results yet._ One line per instrument × method: params · fit quality · ou
 - Alpaca keys: user is adding them in the Order_Flow environment settings (key ID as env var
   `ALPACA_API_KEY_ID`; secret as env var `ALPACA_API_SECRET_KEY` or network secret on `APCA-API-SECRET-KEY`).
   New sessions pick them up; until then equities is blocked. (open)
+- Alpaca open items (equities notes): IEX quote size units (shares vs lots) to confirm on first pull; IEX BBO ≠ NBBO.
 - Dukascopy and Yahoo returned 429 on the first probe from the cloud. (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
 - GitHub default branch came out as `agent/quant` (first ref to land on the empty repo). User to set it to

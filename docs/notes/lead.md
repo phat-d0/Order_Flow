@@ -30,3 +30,15 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 ### 2026-11-26 — decision: Alpaca auth
 - User declined the credential form; will add keys themselves. Loader must accept env-var secret OR
   proxy-injected `APCA-API-SECRET-KEY` (send placeholder). Key ID from env var `ALPACA_API_KEY_ID`.
+
+### 2026-11-26 — done: Phase 2+3 sessions spawned
+- Quant, Crypto, Equities, Commodities, FX sessions created on agent/<role>, each briefed to PR into main and message the Lead. IDs in CLAUDE.md §3.
+
+### 2026-11-26 — done: reviewed + merged PR #1 (Equities, Alpaca loader)
+- Checked: secrets never in repr/logs/errors, placeholder header for proxy, bounded retries + rate limiter,
+  exclusive `end`, one-sided/crossed quotes counted not silent, 24 mocked tests; suite 38 passed.
+- Follow-ups done by Lead: `conditions` column on trades schema, fixtures ownership rule, `make pull-equities`.
+- Equities' decision request answered: keep Alpaca `c` in `conditions` (Phase 4 filtering).
+
+### 2026-11-26 — done: merged PR #2 (Equities: conditions column populated)
+- 40 tests pass. Equities on standby for Phase 4.

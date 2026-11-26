@@ -26,6 +26,7 @@ SCHEMAS: dict[str, pa.Schema] = {
             pa.field("size", pa.float64(), nullable=False),
             pa.field("side", pa.int8(), nullable=False),
             pa.field("trade_id", pa.string()),
+            pa.field("conditions", pa.string()),  # source condition codes, comma-joined; null if none
             pa.field("recv_ts", TS),
         ]
     ),
