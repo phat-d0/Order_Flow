@@ -1,0 +1,39 @@
+# Instrument registry: tier, asset class, sources. Agents may add keys under their own instruments.
+# tier A = full tick (signed trades + quotes + L2), B = partial venue ticks, C = 1m bars only.
+
+instruments:
+  BTC-USD:
+    asset_class: crypto
+    tier: A
+    sources: [coinbase, binance]
+    binance_symbol: BTCUSDT          # secondary history only (different venue and quote currency)
+    session: "24x7"
+  ETH-USD:
+    asset_class: crypto
+    tier: A
+    sources: [coinbase, binance]
+    binance_symbol: ETHUSDT
+    session: "24x7"
+  SPY:   {asset_class: equities, tier: B, sources: [alpaca], session: "rth"}
+  AAPL:  {asset_class: equities, tier: B, sources: [alpaca], session: "rth"}
+  MSFT:  {asset_class: equities, tier: B, sources: [alpaca], session: "rth"}
+  NVDA:  {asset_class: equities, tier: B, sources: [alpaca], session: "rth"}
+  EURUSD:
+    asset_class: fx
+    tier: B
+    sources: [dukascopy]
+    session: "24x5"
+  CL=F:  {asset_class: commodities, tier: C, sources: [yfinance], session: "globex"}
+  GC=F:  {asset_class: commodities, tier: C, sources: [yfinance], session: "globex"}
+  6E=F:  {asset_class: fx, tier: C, sources: [yfinance], session: "globex"}
+
+# Which core methods each tier may run. Methods outside the list are written as not_applicable.
+tier_methods:
+  A: [signing, ofi, sqrt_law, kyle_lambda, amihud, resilience, execution, seasonality]
+  B: [signing, ofi, sqrt_law, kyle_lambda, amihud, resilience, execution, seasonality]
+  C: [signing, kyle_lambda, amihud, execution, seasonality]
+
+caveats:
+  A: ["Single exchange (Coinbase); crypto trades on many venues."]
+  B: ["Single venue only; estimates are venue-level, not market-level."]
+  C: ["1-minute bars only: trade signs inferred by bulk volume classification; no quotes or depth."]

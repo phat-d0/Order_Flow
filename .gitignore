@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Raw market data store (root-anchored; flow_model/data/ is code and IS committed)
+/data/
+*.bi5
+
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.streamlit/secrets.toml
+.DS_Store
+logs/

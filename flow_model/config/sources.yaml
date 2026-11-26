@@ -1,0 +1,39 @@
+# Source endpoints, limits and clock precision. Owners verify and update in Phase 2.
+storage:
+  root: "data"                       # raw parquet store (gitignored), relative to repo root
+
+coinbase:
+  ws_url: "wss://ws-feed.exchange.coinbase.com"
+  rest_url: "https://api.exchange.coinbase.com"
+  channels: ["matches", "ticker", "level2_batch"]   # level2 may require auth; level2_batch is public
+  ts_precision: "us"
+  reconnect_backoff_s: [1, 2, 5, 10, 30]
+  heartbeat_timeout_s: 30
+  flush_every_s: 60
+
+binance:
+  archive_url: "https://data.binance.vision/data"
+  spot_aggtrades_path: "spot/daily/aggTrades"
+  futures_bookticker_path: "futures/um/daily/bookTicker"
+  ts_precision: "ms"
+
+alpaca:
+  data_url: "https://data.alpaca.markets/v2"
+  feed: "iex"
+  key_env: "ALPACA_API_KEY_ID"
+  secret_env: "ALPACA_API_SECRET_KEY"
+  max_requests_per_min: 200          # free plan limit; verify
+  page_limit: 10000
+  ts_precision: "ns"
+
+dukascopy:
+  base_url: "https://datafeed.dukascopy.com/datafeed"
+  price_scale: 100000                # EURUSD points per unit price
+  request_pause_s: 0.5
+  ts_precision: "ms"
+
+yfinance:
+  interval: "1m"
+  max_days_per_request: 7
+  request_pause_s: 1.0
+  ts_precision: "s"

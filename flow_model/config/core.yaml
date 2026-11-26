@@ -1,0 +1,64 @@
+# Shared engine parameters for flow_model/core. Every numeric parameter used by core/ lives here.
+# Asset-class overrides go under instruments.yaml -> <symbol>.overrides (deep-merged on top).
+
+split:
+  train_frac: 0.6              # fraction of whole UTC dates used for fitting; rest is out-of-sample
+  min_test_days: 1
+
+simulator:
+  duration_s: 21600            # 6h of synthetic trading
+  dt_s: 0.1                    # simulation clock step
+  base_price: 100.0
+  tick_size: 0.01
+  depth: 1000.0                # shares per tick level (OW book depth q)
+  impact_coef: 0.0001          # instantaneous price impact per unit volume (Kyle-type)
+  resilience_rho: 0.05         # transient impact decay rate, 1/s
+  permanent_fraction: 0.3      # share of impact that never decays
+  noise_sigma: 0.0002          # fundamental price vol per sqrt(s), log units
+  trade_rate: 2.0              # noise-trade arrivals per second
+  size_mean: 10.0              # mean noise trade size
+  size_tail: 2.5               # Pareto tail index of trade sizes
+  metaorder_rate: 0.002        # metaorders started per second
+  metaorder_participation: 0.1 # metaorder share of volume while active
+  quote_rate: 5.0              # quote updates per second
+  seed: 7
+
+signing:
+  lee_ready_quote_lag_ms: 0    # 0 for modern timestamped feeds; 5000 is the classic 1990s value
+  bvc_window: 50               # bars in the rolling std for bulk volume classification
+  bvc_dist: "t"                # "t" or "normal"
+  bvc_dof: 0.25                # Student-t degrees of freedom (Easley-Lopez de Prado-O'Hara)
+
+ofi:
+  windows: ["1s", "10s", "1min"]
+  n_bins: 20                   # bins for the OFI scatter chart
+
+impact:
+  metaorder_max_gap_s: 5.0     # same-sign trades closer than this join a proxy metaorder
+  metaorder_min_trades: 5
+  n_bins: 20
+  kyle_bar: "1min"             # aggregation for Kyle's lambda regressions
+  amihud_freq: "1h"
+  hac_lags: 5
+
+resilience:
+  large_trade_quantile: 0.99
+  horizons_s: [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300]
+  propagator_max_lag: 200      # trades
+
+execution:
+  order_sizes_pct_adv: [0.1, 1.0, 5.0]
+  horizon_s: 3600
+  n_steps: 60
+  risk_aversion: 1.0e-6        # Almgren-Chriss lambda
+
+seasonality:
+  bucket: "30min"
+  equities_session_tz: "America/New_York"
+  equities_session: ["09:30", "16:00"]
+
+quality_gate:                  # tolerances for tests/test_core_*.py
+  rel_tol_impact: 0.2
+  rel_tol_rho: 0.25
+  rel_tol_ofi_beta: 0.2
+  min_sign_accuracy: 0.9

@@ -1,0 +1,7 @@
+results_root: "flow_model/results"
+exports_path: "flow_model/exports/impact_params.json"
+tier_colors: {A: "#2e7d32", B: "#f9a825", C: "#c62828"}
+simulator_sliders:
+  impact_coef: [0.00001, 0.001, 0.0001]
+  resilience_rho: [0.001, 1.0, 0.05]
+  depth: [100.0, 10000.0, 1000.0]
