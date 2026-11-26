@@ -38,7 +38,7 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PR #1 merged (loader ready, blocked on keys).
+**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (loader ready incl. conditions; blocked on keys; standby).
 **Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts

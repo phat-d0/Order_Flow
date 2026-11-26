@@ -39,3 +39,6 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
   exclusive `end`, one-sided/crossed quotes counted not silent, 24 mocked tests; suite 38 passed.
 - Follow-ups done by Lead: `conditions` column on trades schema, fixtures ownership rule, `make pull-equities`.
 - Equities' decision request answered: keep Alpaca `c` in `conditions` (Phase 4 filtering).
+
+### 2026-11-26 — done: merged PR #2 (Equities: conditions column populated)
+- 40 tests pass. Equities on standby for Phase 4.
