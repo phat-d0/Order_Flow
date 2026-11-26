@@ -5,17 +5,44 @@ storage:
 coinbase:
   ws_url: "wss://ws-feed.exchange.coinbase.com"
   rest_url: "https://api.exchange.coinbase.com"
-  channels: ["matches", "ticker", "level2_batch"]   # level2 may require auth; level2_batch is public
-  ts_precision: "us"
+  venue: "coinbase"
+  # level2 / level3 / full need auth (verified 2026-11-26). level2_batch is public and sends the FULL book
+  # snapshot + 50 ms batched updates (server names it "level2_50"; no sequence numbers on l2update).
+  channels: ["matches", "ticker", "level2_batch", "heartbeat"]
+  quotes_from: "l2_book"             # "l2_book" (top of book rebuilt from level2_batch) or "ticker" (fallback)
+  record_l2: true                    # store l2 rows (snapshot + updates)
+  ts_precision: "us"                 # exchange 'time' field; recv_ts = local clock (ns)
   reconnect_backoff_s: [1, 2, 5, 10, 30]
-  heartbeat_timeout_s: 30
+  backoff_reset_after_s: 60          # a connection that lived this long resets the backoff ladder
+  heartbeat_timeout_s: 30            # no message at all for this long -> reconnect + gap
+  open_timeout_s: 20
+  max_message_bytes: 67108864        # full-book snapshots are ~1-2 MB
   flush_every_s: 60
+  logs_dir: "logs"
+  backfill_trades_on_gap: true       # fill trade_id gaps (incl. reconnects) from REST /trades
+  backfill_max_trades: 200000
+  rest_page_limit: 1000              # /products/<id>/trades max page size
+  rest_pause_s: 0.25                 # public REST limit is ~10 req/s; stay well under
+  rest_timeout_s: 20
+  rest_max_retries: 4
+  rest_retry_backoff_s: 2
+  bisect_max_steps: 64               # trade_id bisection when fetching history by time
 
 binance:
   archive_url: "https://data.binance.vision/data"
   spot_aggtrades_path: "spot/daily/aggTrades"
   futures_bookticker_path: "futures/um/daily/bookTicker"
-  ts_precision: "ms"
+  spot_venue: "binance_spot"
+  futures_source: "binance_um"       # separate source so USD-M futures quotes never mix with spot trades
+  futures_venue: "binance_usdm"
+  futures_bookticker_last_date: "2024-03-30"   # last daily file published (verified 2026-11-26)
+  ts_precision: "us"                 # spot aggTrades are us since 2025-01-01, ms before (auto-detected)
+  us_threshold: 100000000000000      # epoch values above this are microseconds, below milliseconds
+  verify_checksum: true
+  download_timeout_s: 300
+  request_pause_s: 1.0
+  csv_chunk_rows: 2000000
+  default_days: 3                    # CLI default: most recent N published days
 
 alpaca:
   data_url: "https://data.alpaca.markets/v2"
