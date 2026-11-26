@@ -128,6 +128,34 @@ Every fit returns a `FitResult` (or a dataclass with `to_dict()` that is JSON-sa
 - `write_results(out_dir, fits: dict, tables: dict[str, pd.DataFrame]) -> Path`
 - `validate_results(out_dir) -> list[str]` (empty = valid against §3)
 
+### Phase 3 additions (Quant; all backward-compatible — optional kwargs, optional fields, new helpers)
+- Units/semantics: Kyle `lambda` = log-return per share at the bar used; `fit_ofi` regresses ΔP (price units) on
+  OFI / mean depth of the fit sample (`depth_norm="window"` for per-window depth); `fit_sqrt_law` `Y` is WLS with
+  weights 1/x² (= mean of impact/(σ√(Q/V))), OLS in `extra["Y_ols"]`; `event_study.price_reversion` = mean of
+  ε·log(mid(t0+h)/mid(t0−)) (impact still present at lag h; lag-0 row = 0), extra column `price_reversion_se`;
+  `fit_exponential` model perm + trans·e^{−ρh} (params `rho, perm, trans`; `extra.permanent_fraction`);
+  `fit_power_law` model perm + amp·h^{−β}.
+- `metrics`: `train_test_split_by_date(..., min_test_days=0)`; helpers `json_safe`, `ts_ns`, `floor_ns`, `ns_to_utc`,
+  `newey_west_cov`, `FitResult.failed(name, reason)`.
+- `simulator`: `SimParams` optional fields `spread_ticks, metaorder_min_duration_s, metaorder_max_duration_s,
+  start_ts, kyle_bar_s`; `from_config(cfg, **overrides)`; `SimResult.metaorders` (true metaorders, same columns as
+  `build_metaorders`); `truth_values(params)`.
+- `signing`: `lee_ready(..., allow_exact=False)` (prevailing quote = last one strictly before ts − lag);
+  `prevailing_quotes(...)`; `signing_accuracy(..., sizes=None)`; `sign_trades` kwargs `quote_lag`, `allow_exact`.
+- `ofi`: `aggregate_ofi(..., max_gap=None)` (also returns `mid`); `fit_ofi(agg, hac_lags=None, depth_norm="sample")`;
+  `ofi_by_window(quotes, windows, **kw)`; `ofi_bins(agg, n_bins, window)` → `ofi_bins.parquet` rows (add `sample`).
+- `impact`: `kyle_lambda(..., hac_lags=None)` (intercept `alpha`); `bar_flow(trades, bar, quotes=None)` →
+  `ret, signed_volume, volume, dollar_volume, n_trades`; `impact_curve(meta, sigma, V, n_bins, Y)`.
+- `resilience`: `fit_propagator(..., quotes=None)`; `fitted_curves(decay, exp_fit, pl_fit)` → adds `exp_fit, pl_fit`.
+- `execution`: `ImpactModel.price` (optional); `from_fits(fits, cfg, *, price, sigma, spread, depth)` (or
+  `fits["market"]`); `compare_schedules(..., risk_aversion=0.0, return_schedules=False)` (VWAP row only with a
+  profile); `kernel_matrix`, `cost_bps`, `Schedule.to_frame`, `execution_table(model, adv, cfg, volume_profile)` →
+  `execution.parquet` rows.
+- `seasonality`: `time_of_day_bucket(ts, bucket, tz)`; `deseasonalize(..., ts_col="ts", tz=None)`.
+- `results`: `METHODS`, `STATUSES`, `TABLE_COLUMNS`, `method_entry(status, reason, in_sample, out_of_sample)`.
+- New module `core/demo.py`: `run_demo(cfg, out_dir, **sim_overrides)` — end-to-end synthetic §3 output (reference
+  for asset agents; `python -m flow_model.core.demo <out_dir> [duration_s]`).
+
 ---
 
 ## 3. Output contract (`flow_model/results/<asset_class>/<symbol>/`)

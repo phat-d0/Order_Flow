@@ -10,8 +10,10 @@ simulator:
   dt_s: 0.1                    # simulation clock step
   base_price: 100.0
   tick_size: 0.01
-  depth: 1000.0                # shares per tick level (OW book depth q)
-  impact_coef: 0.0001          # instantaneous price impact per unit volume (Kyle-type)
+  start_ts: "2026-01-05T14:30:00Z"  # first simulated timestamp (UTC); Monday 09:30 New York
+  spread_ticks: 1              # gap between the latent bid and ask edges, in ticks (integer); displayed spread = spread_ticks + 1 ticks
+  depth: 1000.0                # shares per tick level of the displayed book (best-level size = depth x level fill)
+  impact_coef: 1.0e-5          # instantaneous impact per share traded, log-return units (kappa)
   resilience_rho: 0.05         # transient impact decay rate, 1/s
   permanent_fraction: 0.3      # share of impact that never decays
   noise_sigma: 0.0002          # fundamental price vol per sqrt(s), log units
@@ -20,6 +22,8 @@ simulator:
   size_tail: 2.5               # Pareto tail index of trade sizes
   metaorder_rate: 0.002        # metaorders started per second
   metaorder_participation: 0.1 # metaorder share of volume while active
+  metaorder_min_duration_s: 60     # metaorder durations are log-uniform on [min, max]
+  metaorder_max_duration_s: 3600
   quote_rate: 5.0              # quote updates per second
   seed: 7
 
