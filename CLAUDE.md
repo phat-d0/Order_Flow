@@ -39,7 +39,7 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
 **In progress:** nothing — all role sessions on standby.
-**Data in the store (cloud, ephemeral):** Coinbase BTC-USD/ETH-USD 45 min (07:50–08:35 UTC 2026-11-26: 27k trades, 35k quotes,
+**Data in the store (each in the recording agent's own container — `data/` is gitignored and NOT shared between sessions; results/ are shared via git):** Coinbase BTC-USD/ETH-USD 45 min (07:50–08:35 UTC 2026-11-26: 27k trades, 35k quotes,
 1.4M L2 rows); Binance BTCUSDT/ETHUSDT aggTrades 2026-11-23..25 (7.2M rows); yfinance 1m CL=F/GC=F/6E=F 29 days;
 Dukascopy EURUSD 1 hour; Alpaca none (no keys).
 **Waiting on:** user go-ahead for Phase 4 + equities ticker list for the yfinance Tier C fallback.
@@ -197,6 +197,8 @@ tick rule ≥ 0.9 only when mid noise ≪ spread (0.79 at default noise — as t
 - `storage.write_partitioned(append)` rewrites the whole day file on every flush → heavy for all-day L2
   (~0.5M rows/h/product). Workaround: larger flush interval or `--no-l2`; fix (part files/hourly l2) before any
   always-on deployment. (open, Lead)
+- Raw data lives only in the container that downloaded it. Phase 4 runs each asset class in its own agent's
+  session; the Lead's end-to-end run (Phase 7) must re-download (yfinance/Binance) or reuse committed results. (open)
 - Crypto agent's probe reached `s3-ap-northeast-1.amazonaws.com` (Binance listing host) although it is not on our
   allowlist; no code uses it. (noted)
 - Core estimator caveats for Phase 4/REPORT (from Quant): (1) Kyle λ biased ~25% low under sign-persistent flow →
