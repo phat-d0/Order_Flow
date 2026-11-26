@@ -34,5 +34,5 @@ flow_model = ["config/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["flow_model/tests"]
-addopts = "-q"
+addopts = ""
 markers = ["network: hits a live data source (deselect with -m 'not network')"]

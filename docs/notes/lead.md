@@ -47,3 +47,9 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 - Mocked tests only (no live network), config-driven, idempotent appender; 64 tests pass on main.
 - Findings folded into CLAUDE.md §4/§5/§7 (30-day 1m limit, crumb 429 harmless, zeroed open-bar volumes, roll offsets).
 - Config additions accepted: sources.yaml yfinance.*, instruments.yaml roll_rule for CL=F/GC=F.
+
+### 2026-11-26 — done: reviewed + merged PR #4 (Quant: core/ + quality gate)
+- Re-ran suite on the branch (65 passed) and after merge (115 passed). Read execution.py (exact KKT/G⁻¹1 OW
+  optimum, consistent cost model for all schedules) and ofi.py (correct CKS e_n, time-weighted depth).
+- Accepted: core.yaml simulator keys + impact_coef unit change; CONTRACTS §2 "Phase 3 additions".
+- Pytest note: `-q` in addopts + `-q` on CLI hides the summary line; use `-o addopts=""` for counts.

@@ -30,7 +30,7 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 |---|---|---|
 | 1. Scaffold, memory, contracts, schemas, agent defs | Lead | **done** (2026-11-26) |
 | 2. Verify sources, data-sources log, start recorders | Crypto / Equities / Commodities / FX | **in progress** (role sessions started 2026-11-26) |
-| 3. Build `core/`, pass quality gate on simulated data | Quant | **in progress** (parallel with 2) |
+| 3. Build `core/`, pass quality gate on simulated data | Quant | **done** — PR #4 merged 2026-11-26, gate passes (115 tests on main) |
 | 4. Asset agents run core methods allowed by tier | asset agents | not started |
 | 5. `exports/impact_params.json` + OU-project hookup doc | Lead | not started |
 | 6. Streamlit dashboard on real results | UI | not started |
@@ -38,7 +38,8 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby).
+**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby). Quant PR #4 merged (core/ complete; standby).
+**Waiting on:** Crypto and FX Phase 2 reports; user decision on adding yfinance 1m bars for equities (Tier C fallback).
 **Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts
@@ -150,11 +151,26 @@ query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host n
 | 2026-11-26 | Trades schema gains nullable `conditions` (comma-joined source codes) | Equities needs Alpaca `c` to filter odd-lot/out-of-sequence trades; Databento has flags too | Lead |
 | 2026-11-26 | Agents own `flow_model/tests/fixtures/<role>/` | Equities PR #1 needed committed JSON fixtures | Lead |
 | 2026-11-26 | Bar appender run daily (cron `17 6 * * *` UTC on an always-on machine) | yfinance keeps only 30 days of 1m bars; daily run also captures session-open volumes before Yahoo zeroes them | Commodities |
+| 2026-11-26 | `simulator.impact_coef` unit = log-return per share, 1e-5 (was 1e-4 price units) | Old value explained ~0.3% of 1-min variance; λ unrecoverable | Quant |
+| 2026-11-26 | Kyle λ unit = log-return per share at `impact.kyle_bar`; OFI β = ΔP (price units) per mean-depth of OFI; √-law Y by WLS (1/x²) | Fixed units so instruments are comparable | Quant |
+| 2026-11-26 | Tier C execution model: λ-only (η = λ·price, no memory) → OW = TWAP by construction | No resilience estimate without quotes; listed as a Tier C caveat | Quant/Lead |
+| 2026-11-26 | `core/demo.py` is the reference pipeline asset agents copy (simulate → IS/OOS fits → write_results) | Uniform Phase 4 outputs | Quant |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
 
-_No results yet._ One line per instrument × method: params · fit quality · out-of-sample.
+One line per instrument × method: params · fit quality · out-of-sample. Real-data results start in Phase 4.
+
+**Simulator quality gate (Phase 3, synthetic, seed 7, 3 days, 621k trades; IS = 2 dates, OOS = 2 dates)** — detail `docs/notes/quant.md`
+| Param | True | IS | OOS |
+|---|---|---|---|
+| Kyle λ (log-ret/share, 1min) | 5.22e-6 | 3.96e-6 (−24%) | 4.48e-6 (−14%) — biased low when flow is sign-persistent; exact with no metaorders |
+| √-law Y | 3.10 | 3.52 (+14%) | 3.02 (−2.5%) |
+| ρ (1/s) | 0.050 | 0.053 (+6%) | 0.060 (+19%) |
+| permanent fraction | 0.30 | 0.36 | 0.32 |
+| OFI β (1s/10s/1min) | 0.0025 | 0.0025 (<0.1%) | 0.0025 (<0.1%) |
+Gate: λ, Y within 20%; ρ within 25% (AIC prefers exponential); OFI β within 20%; exchange flag & Lee-Ready 100%,
+tick rule ≥ 0.9 only when mid noise ≪ spread (0.79 at default noise — as theory predicts); OW < TWAP with finite ρ, = TWAP otherwise.
 
 ## 7. Known issues and open questions
 
@@ -167,6 +183,12 @@ _No results yet._ One line per instrument × method: params · fit quality · ou
 - yfinance 1m quirks for Phase 4: the 29-day backfill has ~20 zero-volume session-open bars per symbol (source artifact); BVC/Kyle λ must exclude/flag them and drop roll bars. No exchange holiday calendar yet → holidays show as gaps. (open)
 - Roll offsets (Yahoo 1m CL=F rolls 2 bdays before last trade; GC=F 3 bdays before FND) rest on one observed roll each; re-verify ~2026-12-17 (CL) and ~2027-01-26 (GC). (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
+- Core estimator caveats for Phase 4/REPORT (from Quant): (1) Kyle λ biased ~25% low under sign-persistent flow →
+  report λ at several bar sizes; (2) simulator is a pure book-shift world (OFI R² ≈ 0.98, constant spread, no depth
+  depletion) → real OFI R² will be far lower; (3) sim impact is OW (linear), so the gate validates the √-law
+  *estimator*, not the √ law; free δ ≈ 0.8–1.0 on sim; (4) same-sign-run proxy metaorders miss interleaved
+  metaorders → √-law fits on real data need a caveat; (5) propagator β is descriptive; (6) Tier C λ-only
+  execution model is an assumption. (open)
 - GitHub default branch came out as `agent/quant` (first ref to land on the empty repo). User to set it to
   `main` in GitHub → Settings → General → Default branch. Until then every PR must target `main` explicitly. (open)
 
