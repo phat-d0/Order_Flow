@@ -50,8 +50,42 @@ dukascopy:
   request_pause_s: 0.5
   ts_precision: "ms"
 
-yfinance:
+yfinance:                            # Commodities agent; verified 2026-11-26 (docs/notes/commodities.md)
+  chart_url: "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
   interval: "1m"
-  max_days_per_request: 7
-  request_pause_s: 1.0
-  ts_precision: "s"
+  interval_minutes: 1
+  max_days_per_request: 7            # Yahoo hard limit is 8 days/request for 1m (HTTP 422 above); 7 = margin
+  lookback_days: 29                  # Yahoo serves 1m only "within the last 30 days"; 29 = margin
+  request_pause_s: 1.0               # pause between chunked requests
+  lead_in_minutes: 5                 # request this much earlier and discard it: first bar's volume is always 0
+  max_retries: 4                     # on 429 / transient errors
+  backoff_base_s: 5.0                # wait = min(backoff_max_s, base * 2**attempt)
+  backoff_max_s: 120.0
+  timeout_s: 30
+  prepost: true                      # futures trade ~23h; keep every Globex minute
+  ts_precision: "s"                  # epoch seconds, labelled at bar open, exchange tz -> UTC
+  check_symbol: "CL=F"
+  sessions:                          # expected trading minutes, for gap detection (holidays not modelled)
+    globex:
+      tz: "America/New_York"
+      break_start: "17:00"           # daily CME halt 17:00-18:00 ET
+      break_end: "18:00"
+      week_open_day: 6               # Sunday (Monday=0) 18:00 ET
+      week_open: "18:00"
+      week_close_day: 4              # Friday 17:00 ET
+      week_close: "17:00"
+  appender:                          # flow_model/data/recorders/bar_appender.py
+    tier: "C"                        # appends every instrument of this tier whose sources include yfinance
+    initial_lookback_days: 29        # first run: as much history as Yahoo serves
+    overlap_minutes: 60              # refetch this much before the last stored bar (Yahoo revises recent bars)
+    settle_lag_s: 120                # a bar is complete once ts + interval + settle_lag <= now
+    gap_report_min_minutes: 5        # list missing-minute runs at least this long; shorter ones are counted
+    log_dir: "logs/bar_appender"     # relative to repo root; run reports (JSON) + rotating log
+    log_max_bytes: 5000000
+    log_backups: 5
+  roll_detection:                    # flow_model/assets/commodities/rolls.py
+    vol_window_bars: 390             # rolling window of 1m log returns for the scale estimate
+    min_periods_bars: 120
+    z_threshold: 8.0                 # |return| / rolling robust sigma above this = candidate jump
+    calendar_tolerance_bdays: 1      # largest jump within +-this many business days of an expected roll = roll
+    contract_match_tol: 1.0e-6       # |continuous - contract| below this = same contract (match_contract)

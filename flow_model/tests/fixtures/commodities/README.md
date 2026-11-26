@@ -1,0 +1,1 @@
+fixture: synthetic rows in yfinance Ticker.history(interval='1m', keepna=True) shape (not real Yahoo data). Rows: zero-volume first bar, NaN placeholder minute, inconsistent OHLC (09:33 high<close), duplicate ts (09:34).
