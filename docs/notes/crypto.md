@@ -91,3 +91,18 @@ WantedBy=default.target
 SIGTERM/SIGINT → final flush + stats file. Check `logs/coinbase_gaps.jsonl` daily. Disk: expect roughly
 (measure from the stats file) a few hundred MB/day of parquet with L2; use `--no-l2` to keep only trades +
 book-derived quotes. Binance: run `python -m flow_model.data.loaders.binance --days 2` once a day after 03:00 UTC.
+
+### 2026-11-26 — done: 45-minute capture BTC-USD + ETH-USD (07:50:05–08:35:05 UTC) from the cloud container
+| Symbol | trades | quotes (book top) | l2 rows (snapshot rows) | trade_id holes after back-fill | buy share | recv latency p50/p99 | median spread |
+|---|---|---|---|---|---|---|---|
+| BTC-USD | 23,730 (5 from REST) | 17,128 | 767,681 (74,413) | 0 (ids 1148203461–1148227190) | 0.389 | 25 / 184 ms | $0.01 |
+| ETH-USD | 3,341 (1 from REST) | 18,415 | 674,172 (37,923) | 0 (ids 858422243–858425583) | 0.614 | 23 / 172 ms | $0.10 |
+- Message rates (both products): match 10.0/s, ticker 10.0/s, l2update 31.6/s, heartbeat 2.0/s. All stored
+  frames pass `schema.validate`; no crossed or locked quotes.
+- Gaps: 1 reconnect at 08:02:04 (`ConnectionClosedError: no close frame received or sent`), reconnected in 1 s;
+  missing trades ETH-USD 1 / BTC-USD 5, all back-filled from REST. L2/quotes: ~1–2 s hole around 08:02:04,
+  book rebuilt from a new snapshot (logged as kind `all`).
+- Side cross-check ticker taker vs inverted match maker: 27,065 agree / 0 disagree.
+- Disk: 13 MB parquet for 45 min with L2 → ~0.4 GB/day for both products.
+- Binance spot aggTrades stored: BTCUSDT 2026-11-23..25 (4,369,716 rows), ETHUSDT 2026-11-23..25 (2,789,906 rows),
+  95 MB; 2026-11-26 not yet published (404, recorded as unavailable).
