@@ -33,3 +33,9 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 
 ### 2026-11-26 — done: Phase 2+3 sessions spawned
 - Quant, Crypto, Equities, Commodities, FX sessions created on agent/<role>, each briefed to PR into main and message the Lead. IDs in CLAUDE.md §3.
+
+### 2026-11-26 — done: reviewed + merged PR #1 (Equities, Alpaca loader)
+- Checked: secrets never in repr/logs/errors, placeholder header for proxy, bounded retries + rate limiter,
+  exclusive `end`, one-sided/crossed quotes counted not silent, 24 mocked tests; suite 38 passed.
+- Follow-ups done by Lead: `conditions` column on trades schema, fixtures ownership rule, `make pull-equities`.
+- Equities' decision request answered: keep Alpaca `c` in `conditions` (Phase 4 filtering).

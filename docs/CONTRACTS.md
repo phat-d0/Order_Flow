@@ -16,13 +16,14 @@ Research use only: no broker connections, no orders. Free data only.
 | `flow_model/data/schema.py`, `storage.py`, `loaders/base.py` | Lead | import only |
 | `flow_model/core/`, `flow_model/tests/test_core_*.py` | Quant | import only |
 | `flow_model/data/loaders/{coinbase,binance}.py`, `recorders/coinbase_ws.py`, `assets/crypto/`, `tests/test_crypto_*.py` | Crypto | — |
-| `flow_model/data/loaders/alpaca.py`, `assets/equities/`, `tests/test_equities_*.py` | Equities | — |
+| `flow_model/data/loaders/alpaca.py`, `assets/equities/`, `tests/test_equities_*.py`, `tests/fixtures/equities/` | Equities | — |
 | `flow_model/data/loaders/yfinance_bars.py`, `recorders/bar_appender.py`, `assets/commodities/`, `tests/test_commodities_*.py` | Commodities | FX imports |
 | `flow_model/data/loaders/dukascopy.py`, `assets/fx/`, `tests/test_fx_*.py` | FX | — |
 | `flow_model/ui/`, `tests/test_ui_*.py` | UI | — |
 | `flow_model/results/<asset_class>/` | that asset agent | UI reads only |
 | `docs/notes/<agent>.md` | that agent | Lead reads/merges |
 
+Each agent also owns `flow_model/tests/fixtures/<its-role>/` (small committed test fixtures only).
 Asset agents may add keys under their own section of `flow_model/config/instruments.yaml` /
 `sources.yaml` and must tell the Lead. Nobody else edits `core.yaml` except via the Lead.
 
@@ -36,7 +37,7 @@ Timestamps: `timestamp[ns, tz=UTC]`. `recv_ts` = local receive time (null for hi
 
 | Kind | Columns (dtype) |
 |---|---|
-| `trades` | ts, symbol(str), source(str), venue(str), price(f64), size(f64), side(i8), trade_id(str, nullable), recv_ts(ts, nullable) |
+| `trades` | ts, symbol(str), source(str), venue(str), price(f64), size(f64), side(i8), trade_id(str, nullable), conditions(str, nullable: source condition codes comma-joined, e.g. Alpaca `c`; used to filter odd-lots/out-of-sequence), recv_ts(ts, nullable) |
 | `quotes` | ts, symbol, source, venue, bid_px(f64), bid_sz(f64, NaN ok), ask_px(f64), ask_sz(f64, NaN ok), recv_ts |
 | `l2` | ts, symbol, source, venue, book_side(i8 +1 bid/−1 ask), price(f64), size(f64; new total at level, 0 = removed), is_snapshot(bool), recv_ts |
 | `bars` | ts(bar open), symbol, source, venue, interval(str, e.g. "1m"), open, high, low, close, volume (f64) |
