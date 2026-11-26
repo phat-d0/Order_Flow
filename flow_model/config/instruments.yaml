@@ -23,8 +23,22 @@ instruments:
     tier: B
     sources: [dukascopy]
     session: "24x5"
-  CL=F:  {asset_class: commodities, tier: C, sources: [yfinance], session: "globex"}
-  GC=F:  {asset_class: commodities, tier: C, sources: [yfinance], session: "globex"}
+  CL=F:                              # NYMEX WTI; Yahoo continuous front month, not back-adjusted
+    asset_class: commodities
+    tier: C
+    sources: [yfinance]
+    session: "globex"
+    # exchange last trade = 3 business days before the 25th of the month before delivery; Yahoo's 1m CL=F
+    # switched 2 business days earlier (2026-11-18 08:31 UTC, checked against CLF27.NYM)
+    roll_rule: {rule: "nymex_cl", yahoo_offset_bdays: -2}
+  GC=F:                              # COMEX gold; Yahoo continuous front month, not back-adjusted
+    asset_class: commodities
+    tier: C
+    sources: [yfinance]
+    session: "globex"
+    # ~first notice day = last business day before an active delivery month; Yahoo's 1m GC=F switched
+    # 3 business days earlier (2026-11-25 08:31 UTC, checked against GCZ26.CMX / GCG27.CMX)
+    roll_rule: {rule: "last_bday_before_delivery", delivery_months: [2, 4, 6, 8, 10, 12], yahoo_offset_bdays: -3}
   6E=F:  {asset_class: fx, tier: C, sources: [yfinance], session: "globex"}
 
 # Which core methods each tier may run. Methods outside the list are written as not_applicable.
