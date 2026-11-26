@@ -272,25 +272,38 @@ def pull_days(
 ) -> list[dict[str, Any]]:
     """Fetch each UTC day hour by hour, store what arrived, and return one report per day.
 
-    A day with failed hours is still stored (the hours that arrived) and the failures are reported.
+    Each hour is stored as it arrives (re-runs de-duplicate). Failed hours are reported; after
+    ``max_consecutive_failed_hours`` failures in a row the pull stops (``aborted: true``) rather than
+    keep hitting a source that is refusing us.
     """
     reports = []
+    limit = int(loader.cfg["max_consecutive_failed_hours"])
+    streak = 0
     for day in days:
         start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
-        frames, report = [], FetchReport(symbol=symbol)
+        frames, report, written = [], FetchReport(symbol=symbol), set()
+        aborted = False
         for h in range(24):
             frame, res = loader.fetch_hour(symbol, start + timedelta(hours=h))
             report.hours.append(res)
             frames.append(frame)
+            written.update(storage.write_partitioned(frame, "quotes", root=root))  # hour by hour: restart-safe
+            streak = streak + 1 if res.status == "failed" else 0
+            if streak >= limit:
+                log.error("dukascopy: %d consecutive failed hours; stopping the pull", streak)
+                aborted = True
+                break
         data = pd.concat([f for f in frames if len(f)] or [schema.empty_frame("quotes")], ignore_index=True)
-        written = storage.write_partitioned(data.sort_values("ts", kind="stable"), "quotes", root=root)
-        entry = {"date": day.isoformat(), **report.summary(), "files": [str(p) for p in written]}
+        entry = {"date": day.isoformat(), **report.summary(), "aborted": aborted,
+                 "files": sorted(str(p) for p in written)}
         if len(data):
             gaps = data["ts"].diff().dt.total_seconds()
             entry["max_gap_s"] = float(gaps.max()) if len(data) > 1 else None
             entry["min_nonzero_dt_ms"] = float(gaps[gaps > 0].min() * 1000) if (gaps > 0).any() else None
         reports.append(entry)
         log.info("dukascopy %s %s: %s", symbol, day, json.dumps(report.summary()))
+        if aborted:
+            break
     return reports
 
 

@@ -34,3 +34,38 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
   Compare on common 1m buckets: mid from Dukascopy resampled to 1m vs 6E close (6E is USD per EUR, same
   direction; futures basis ≈ carry, near-constant intraday) — return correlation, lead/lag, spread (bps) vs
   Amihud, intraday profiles. yfinance 1m only covers ~7–30 days back, so overlap needs a recent Dukascopy pull.
+
+### 2026-11-26 — finding: datafeed.dukascopy.com mostly refuses this cloud egress (429 / 503 / TLS resets)
+All requests sequential, ≥30 s apart after the first failure. Times UTC.
+| Time | Request | Result |
+|---|---|---|
+| 07:43:36 | `EURUSD/2026/10/24/10h_ticks.bi5` (curl) | proxy CONNECT 200, then TLS handshake reset by peer (curl 35) |
+| 07:43:53 | same, retry | TLS reset after ~12 s |
+| 07:44:10 | `HEAD https://datafeed.dukascopy.com/` | **429**; body `{"error": "Too Many Requests. For instructions, see: https://wiki.dukascopy.com/en/development/data-export/"}`, no Retry-After |
+| 07:44:10 | control: `HEAD https://data.binance.vision/` | 200 in 0.5 s (proxy itself is fine) |
+| 07:45:31 / 07:47:32 | 10h file (backoff probe, +60 s / +120 s) | **503** "No server is available to handle this request" |
+| 07:51:38 | same (+240 s) | connection reset |
+| 07:59:48 | same (+480 s) | **200, 25 313 bytes** → 5153 ticks (only success of the day) |
+| 08:00–08:21 | day pull 2026-11-24, hours 00 and 01, 5 attempts each (backoff 30/60/120/300 s) | 503 ×5, reset ×3, read timeout (60 s) ×1, 0 successes → stopped by hand |
+| 08:21:22 | history spot-check `EURUSD/2003/04/05/10h_ticks.bi5` (one try) | **429** |
+- Success rate ≈ 1 / 16 requests over ~40 min. The 429 body points to a data-export wiki; `wiki.dukascopy.com`
+  is not on the environment allowlist (DNS fails), so its rules could not be read. Not worked around.
+- Likely cause (unconfirmed): the shared cloud egress IP is rate-limited/blocked by Dukascopy's front end.
+- Data stored: **1 hour only** (2026-11-24 10:00–11:00 UTC, 5153 rows) in `data/dukascopy/EURUSD/quotes/2026-11-24.parquet`.
+  The 3–5 full days requested were **not** obtained.
+- History depth: **unverified** (2003 spot-check got 429). Commonly cited start is 2003-05 for EURUSD.
+
+### 2026-11-26 — finding: format verified on the one live file
+- LZMA alone header `5d 00004000` + uncompressed size 103 060 = 5153 × 20 bytes ✓; `>IIIff` records decode cleanly.
+- ms offsets 116 … 3 598 931, monotonic, no duplicate ms; min Δt 52 ms → **precision = 1 ms** (ns remainder always 0).
+- Price scale 1e5 ✓: bid 1.09344 / ask 1.09347; spread 0.1–0.7 pips (median 0.3); 0 crossed quotes.
+- Volumes: 0.12–29.0, steps of 0.9/1.12/1.8 → look like millions of base currency (Dukascopy's own liquidity). Unit unconfirmed.
+- Clock: Dukascopy server timestamps (UTC hour + ms offset); no receive time (`recv_ts` null, historical download).
+
+### 2026-11-26 — decision: pull_days stores hour by hour and stops after 2 failed hours in a row
+- Config `max_consecutive_failed_hours: 2`. A refusing source should not get 24×5 retries per day.
+
+### 2026-11-26 — problem (open): how to get 3–5 days of EURUSD
+Options for the Lead: (a) run the CLI on the always-on machine (home IP, not the shared cloud egress);
+(b) allow `wiki.dukascopy.com` so we can read their export rules; (c) retry here later at low rate.
+Command: `.venv/bin/python -m flow_model.data.loaders.dukascopy --symbol EURUSD --start 2026-11-23 --end 2026-11-25`.

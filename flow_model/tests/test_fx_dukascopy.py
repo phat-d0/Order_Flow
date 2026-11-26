@@ -159,3 +159,13 @@ def test_check_never_raises_on_network_error() -> None:
     loader = DukascopyLoader(cfg=CFG, http_get=boom, sleep=lambda s: None)
     res = loader.check()
     assert res.ok is False and "ConnectionError" in res.detail
+
+
+def test_pull_days_stops_after_consecutive_failures(tmp_path) -> None:
+    http = FakeHttp({}, default=(503, b""))
+    loader = _loader(http)
+    reports = pull_days(loader, "EURUSD", [date(2026, 11, 24), date(2026, 11, 25)], root=tmp_path)
+    limit = int(CFG["max_consecutive_failed_hours"])
+    assert len(reports) == 1 and reports[0]["aborted"] is True
+    assert len(reports[0]["hours_failed"]) == limit
+    assert len(http.calls) == limit * (len(CFG["backoff_s"]) + 1)

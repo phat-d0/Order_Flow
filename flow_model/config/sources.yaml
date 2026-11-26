@@ -38,6 +38,7 @@ dukascopy:
   retry_statuses: [429, 500, 502, 503, 504]
   empty_statuses: [404]              # treated as "no ticks in this hour" (200 + empty body is too)
   timeout_s: 60
+  max_consecutive_failed_hours: 2    # pull_days stops after this many failed hours in a row (politeness)
   user_agent: "order-flow-research/0.1 (research use; sequential, paced)"
   check_symbol: "EURUSD"
   check_lag_hours: 3                 # check() probes an hour at least this old (latest hours may not be published)
