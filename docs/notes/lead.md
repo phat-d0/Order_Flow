@@ -58,3 +58,16 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
 - Decoder checked (LZMA auto, record-size guard, crossed filter); 127 tests pass on main.
 - Dukascopy blocks the cloud egress. Decided: no more cloud pulls beyond one gentle retry in Phase 4; user's
   always-on machine runs the CLI. Did not add wiki.dukascopy.com (not needed to stay within limits).
+
+### 2026-11-26 — done: reviewed + merged PR #6 (Crypto); Phase 2 complete
+- Live tests correctly `@pytest.mark.network`; fixtures under tests/fixtures/crypto/ (covered by rule). 158 pass.
+- Folded source facts into CLAUDE.md §4 (level2 auth, level2_batch public, bookTicker ended 2024-03-30).
+- Storage rewrite-on-append flagged for always-on L2 (open, Lead).
+
+### 2026-11-26 — plan: Phase 4 (shown to user)
+- Crypto: trade-based methods (signing accuracy, Kyle λ at several bars, √-law, propagator, Amihud, seasonality)
+  on Binance aggTrades with a by-date split; quote-based (OFI, resilience, execution) on a longer Coinbase capture
+  that spans a UTC midnight (needed for a date split); label each fit with its source/venue.
+- Commodities: CL=F, GC=F Tier C on 29 days (exclude zero-volume open bars + roll bars). FX: 6E=F Tier C; one
+  Dukascopy retry, else EURUSD = blocked. Equities: yfinance 1m Tier C fallback on the user's ticker list
+  (Tier B with Alpaca only if keys appear). Quant on call. Lead writes run_all.py.

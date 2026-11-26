@@ -29,18 +29,21 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 | Phase | Owner | State |
 |---|---|---|
 | 1. Scaffold, memory, contracts, schemas, agent defs | Lead | **done** (2026-11-26) |
-| 2. Verify sources, data-sources log, start recorders | Crypto / Equities / Commodities / FX | **in progress** (role sessions started 2026-11-26) |
+| 2. Verify sources, data-sources log, start recorders | Crypto / Equities / Commodities / FX | **done** 2026-11-26 (PRs #1–#3, #5, #6; 158 tests on main) |
 | 3. Build `core/`, pass quality gate on simulated data | Quant | **done** — PR #4 merged 2026-11-26, gate passes (115 tests on main) |
-| 4. Asset agents run core methods allowed by tier | asset agents | not started |
+| 4. Asset agents run core methods allowed by tier | asset agents | next — plan shown to user, awaiting go-ahead |
 | 5. `exports/impact_params.json` + OU-project hookup doc | Lead | not started |
 | 6. Streamlit dashboard on real results | UI | not started |
 | 7. End-to-end run, `REPORT.md`, final memory update | Lead | not started |
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby). Quant PR #4 merged (core/ complete; standby). FX PR #5 merged (Dukascopy loader; cloud blocked; standby).
-**Waiting on:** Crypto Phase 2 report; user decision on adding yfinance 1m bars for equities (Tier C fallback).
-**Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
+**In progress:** nothing — all role sessions on standby.
+**Data in the store (cloud, ephemeral):** Coinbase BTC-USD/ETH-USD 45 min (07:50–08:35 UTC 2026-11-26: 27k trades, 35k quotes,
+1.4M L2 rows); Binance BTCUSDT/ETHUSDT aggTrades 2026-11-23..25 (7.2M rows); yfinance 1m CL=F/GC=F/6E=F 29 days;
+Dukascopy EURUSD 1 hour; Alpaca none (no keys).
+**Waiting on:** user go-ahead for Phase 4 + equities ticker list for the yfinance Tier C fallback.
+**Next:** Phase 4 per the plan in docs/notes/lead.md.
 
 ## 3. Architecture and contracts
 
@@ -123,8 +126,9 @@ owning agent's notes.
 
 | Source | Endpoint | Status | Returned / limits | Owner |
 |---|---|---|---|---|
-| Coinbase Exchange WS/REST | `wss://ws-feed.exchange.coinbase.com`, `https://api.exchange.coinbase.com` | reachable (REST 200, 2026-11-26) | channel auth requirements TBD | crypto |
-| Binance archive | `https://data.binance.vision/` | reachable (200, 2026-11-26) | file coverage TBD | crypto |
+| Coinbase Exchange WS | `wss://ws-feed.exchange.coinbase.com` | **works, no auth** for `matches` (side = MAKER → aggressor inverted; 27,065/27,065 agree with ticker taker side), `ticker` (BBO+sizes, only on trades), `heartbeat`, `level2_batch` (full-depth snapshot ~37k BTC levels, updates batched ~50 ms, **no sequence numbers**). **`level2`/`level3`/`full` refused: require authentication** — not used | µs exchange time + local recv_ts; ~10 match/s, ~32 l2update/s combined; 1 reconnect in 45 min (back in 1 s); ~0.4 GB/day with L2. Quotes = top of book rebuilt from level2_batch. No history for quotes/L2 beyond what we record | crypto |
+| Coinbase REST | `https://api.exchange.coinbase.com` `/products/<id>/trades` (after=<id>, ≤1000/page), `/book`, `/time` | works (200) | trade history back to trade_id 1 (2015-01-08); ~10 req/s public (we pace 4/s); used to back-fill trade_id holes after reconnects | crypto |
+| Binance archive | `https://data.binance.vision/data/spot/daily/aggTrades/<SYM>/` | works (200) | daily zip + CHECKSUM, published ~02:40 UTC for the prior day; back to 2017-08-17; BTCUSDT ~1.7M rows/day; µs since 2025-01-01 (ms before); `isBuyerMaker` gives the aggressor side. **USD-M `bookTicker` discontinued after 2024-03-30** (404 since) | crypto |
 | Alpaca market data | `https://data.alpaca.markets/v2/stocks/{sym}/trades|quotes` (feed=iex) | loader merged (PR #1); **401 — no keys yet** | ns timestamps per docs (confirm on first pull); one-sided/crossed IEX quotes dropped + counted; run `make pull-equities` once keys exist | equities |
 | Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/{Y}/{M-1:02}/{D}/{H}h_ticks.bi5` | loader merged (PR #5); **effectively blocked from the cloud**: 1 success in ~16 sequential requests 07:43–08:21 UTC (429 without Retry-After, 503 "No server is available", TLS resets, timeouts) while Binance answered 200 | Format verified on the live file: LZMA, `>IIIff` (ms, ask, bid, ask_vol, bid_vol), price scale 1e5, 1 ms precision (server clock), 5,153 ticks in one hour, spread 0.1–0.7 pip. Rows/day, history depth and volume units unverified. Pull on an always-on machine: `python -m flow_model.data.loaders.dukascopy --symbol EURUSD --start D --end D` | fx |
 | yfinance | `query1/query2.finance.yahoo.com/v8/finance/chart/<sym>?interval=1m` | **works** (200; PR #3). Crumb endpoint 429s but yfinance proceeds without it; fc.yahoo.com 404 | 1m history = last 30 days (422 beyond); ≤8 days/request (config 7); epoch-s bar-open stamps; ~29k bars/symbol/29d; volume present for CL=F, GC=F, 6E=F; minutes with no trades come back as NaN rows (dropped + counted); **Yahoo zeroes the volume of each session-open bar** except the latest day → appender never overwrites positive volume with 0 | commodities, fx |
@@ -156,6 +160,9 @@ query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host n
 | 2026-11-26 | Tier C execution model: λ-only (η = λ·price, no memory) → OW = TWAP by construction | No resilience estimate without quotes; listed as a Tier C caveat | Quant/Lead |
 | 2026-11-26 | `core/demo.py` is the reference pipeline asset agents copy (simulate → IS/OOS fits → write_results) | Uniform Phase 4 outputs | Quant |
 | 2026-11-26 | Stop hammering Dukascopy from the cloud; pull EURUSD on an always-on machine; no extra hosts (wiki) requested | Respect source limits; the cloud IP is refused regardless of pacing | Lead |
+| 2026-11-26 | Coinbase quotes = top of book rebuilt from public `level2_batch`; `ticker` kept as side cross-check | `level2` needs auth; no credentials allowed | Crypto |
+| 2026-11-26 | Binance spot (`binance`/`binance_spot`) and USD-M (`binance_um`/`binance_usdm`) are separate sources; BTCUSDT/ETHUSDT never mixed with Coinbase BTC-USD in one fit | Different venue and quote currency | Crypto |
+| 2026-11-26 | Coinbase trade_id holes back-filled from REST `/trades` | 0 trade holes after reconnects | Crypto |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
@@ -185,7 +192,13 @@ tick rule ≥ 0.9 only when mid noise ≪ spread (0.79 at default noise — as t
   blocked (1 hour of ticks stored). Yahoo: resolved — only the crumb endpoint 429s. (open)
 - yfinance 1m quirks for Phase 4: the 29-day backfill has ~20 zero-volume session-open bars per symbol (source artifact); BVC/Kyle λ must exclude/flag them and drop roll bars. No exchange holiday calendar yet → holidays show as gaps. (open)
 - Roll offsets (Yahoo 1m CL=F rolls 2 bdays before last trade; GC=F 3 bdays before FND) rest on one observed roll each; re-verify ~2026-12-17 (CL) and ~2027-01-26 (GC). (open)
-- Network policy of this cloud environment may block some sources; Phase 2 records it. (open)
+- Coinbase L2: no sequence numbers on `level2_batch` → message loss inside a connection is undetectable; 50 ms
+  batch resolution; book re-snapshotted on reconnect (~1–2 s quote hole per reconnect). (open, inherent)
+- `storage.write_partitioned(append)` rewrites the whole day file on every flush → heavy for all-day L2
+  (~0.5M rows/h/product). Workaround: larger flush interval or `--no-l2`; fix (part files/hourly l2) before any
+  always-on deployment. (open, Lead)
+- Crypto agent's probe reached `s3-ap-northeast-1.amazonaws.com` (Binance listing host) although it is not on our
+  allowlist; no code uses it. (noted)
 - Core estimator caveats for Phase 4/REPORT (from Quant): (1) Kyle λ biased ~25% low under sign-persistent flow →
   report λ at several bar sizes; (2) simulator is a pure book-shift world (OFI R² ≈ 0.98, constant spread, no depth
   depletion) → real OFI R² will be far lower; (3) sim impact is OW (linear), so the gate validates the √-law
