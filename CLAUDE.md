@@ -38,8 +38,8 @@ cheapest way to execute an order (Obizhaeva-Wang vs Almgren-Chriss vs TWAP/VWAP)
 
 **Done:** repo scaffold; `.venv` (Python 3.11); configs; common schemas + partitioned parquet storage
 (+ tests); `core/` API stubs; agent definitions; per-agent notes files; branches `main` + `agent/*`.
-**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby). Quant PR #4 merged (core/ complete; standby).
-**Waiting on:** Crypto and FX Phase 2 reports; user decision on adding yfinance 1m bars for equities (Tier C fallback).
+**In progress:** Phases 2+3 — Quant, Crypto, Commodities, FX working. Equities PRs #1–#2 merged (blocked on keys; standby). Commodities PR #3 merged (29 days of 1m bars for CL=F, GC=F, 6E=F stored; standby). Quant PR #4 merged (core/ complete; standby). FX PR #5 merged (Dukascopy loader; cloud blocked; standby).
+**Waiting on:** Crypto Phase 2 report; user decision on adding yfinance 1m bars for equities (Tier C fallback).
 **Next:** review each PR against `docs/CONTRACTS.md`, merge, fold notes into §4–§7, summary to user.
 
 ## 3. Architecture and contracts
@@ -126,7 +126,7 @@ owning agent's notes.
 | Coinbase Exchange WS/REST | `wss://ws-feed.exchange.coinbase.com`, `https://api.exchange.coinbase.com` | reachable (REST 200, 2026-11-26) | channel auth requirements TBD | crypto |
 | Binance archive | `https://data.binance.vision/` | reachable (200, 2026-11-26) | file coverage TBD | crypto |
 | Alpaca market data | `https://data.alpaca.markets/v2/stocks/{sym}/trades|quotes` (feed=iex) | loader merged (PR #1); **401 — no keys yet** | ns timestamps per docs (confirm on first pull); one-sided/crossed IEX quotes dropped + counted; run `make pull-equities` once keys exist | equities |
-| Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/...bi5` | reachable but **429 rate-limited** on first probe | shared cloud egress IP? back off | fx |
+| Dukascopy | `https://datafeed.dukascopy.com/datafeed/EURUSD/{Y}/{M-1:02}/{D}/{H}h_ticks.bi5` | loader merged (PR #5); **effectively blocked from the cloud**: 1 success in ~16 sequential requests 07:43–08:21 UTC (429 without Retry-After, 503 "No server is available", TLS resets, timeouts) while Binance answered 200 | Format verified on the live file: LZMA, `>IIIff` (ms, ask, bid, ask_vol, bid_vol), price scale 1e5, 1 ms precision (server clock), 5,153 ticks in one hour, spread 0.1–0.7 pip. Rows/day, history depth and volume units unverified. Pull on an always-on machine: `python -m flow_model.data.loaders.dukascopy --symbol EURUSD --start D --end D` | fx |
 | yfinance | `query1/query2.finance.yahoo.com/v8/finance/chart/<sym>?interval=1m` | **works** (200; PR #3). Crumb endpoint 429s but yfinance proceeds without it; fc.yahoo.com 404 | 1m history = last 30 days (422 beyond); ≤8 days/request (config 7); epoch-s bar-open stamps; ~29k bars/symbol/29d; volume present for CL=F, GC=F, 6E=F; minutes with no trades come back as NaN rows (dropped + counted); **Yahoo zeroes the volume of each session-open bar** except the latest day → appender never overwrites positive volume with 0 | commodities, fx |
 
 Network: the `Order_Flow` cloud environment is limited-access. On 2026-11-26 every data host returned proxy
@@ -155,6 +155,7 @@ query1.finance.yahoo.com, query2.finance.yahoo.com, fc.yahoo.com. Any new host n
 | 2026-11-26 | Kyle λ unit = log-return per share at `impact.kyle_bar`; OFI β = ΔP (price units) per mean-depth of OFI; √-law Y by WLS (1/x²) | Fixed units so instruments are comparable | Quant |
 | 2026-11-26 | Tier C execution model: λ-only (η = λ·price, no memory) → OW = TWAP by construction | No resilience estimate without quotes; listed as a Tier C caveat | Quant/Lead |
 | 2026-11-26 | `core/demo.py` is the reference pipeline asset agents copy (simulate → IS/OOS fits → write_results) | Uniform Phase 4 outputs | Quant |
+| 2026-11-26 | Stop hammering Dukascopy from the cloud; pull EURUSD on an always-on machine; no extra hosts (wiki) requested | Respect source limits; the cloud IP is refused regardless of pacing | Lead |
 | 2026-11-26 | `core/results.py` added (writer + validator for the output contract) | One place enforces fits.json schema | Lead |
 
 ## 6. Results summary
@@ -179,7 +180,9 @@ tick rule ≥ 0.9 only when mid noise ≪ spread (0.79 at default noise — as t
   `ALPACA_API_KEY_ID`; secret as env var `ALPACA_API_SECRET_KEY` or network secret on `APCA-API-SECRET-KEY`).
   New sessions pick them up; until then equities is blocked. (open)
 - Alpaca open items (equities notes): IEX quote size units (shares vs lots) to confirm on first pull; IEX BBO ≠ NBBO.
-- Dukascopy returned 429 on the first probe from the cloud. (open) Yahoo: resolved — only the crumb endpoint 429s.
+- Dukascopy refuses almost all requests from the cloud egress (429/503/resets). Decision: no further pulls from the cloud
+  beyond one low-rate retry in Phase 4; full pulls run on the user's always-on machine. Until then EURUSD Tier B is
+  blocked (1 hour of ticks stored). Yahoo: resolved — only the crumb endpoint 429s. (open)
 - yfinance 1m quirks for Phase 4: the 29-day backfill has ~20 zero-volume session-open bars per symbol (source artifact); BVC/Kyle λ must exclude/flag them and drop roll bars. No exchange holiday calendar yet → holidays show as gaps. (open)
 - Roll offsets (Yahoo 1m CL=F rolls 2 bdays before last trade; GC=F 3 bdays before FND) rest on one observed roll each; re-verify ~2026-12-17 (CL) and ~2027-01-26 (GC). (open)
 - Network policy of this cloud environment may block some sources; Phase 2 records it. (open)

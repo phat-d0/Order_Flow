@@ -53,3 +53,8 @@ Newest entries at the bottom. The Lead merges summaries into `CLAUDE.md`.
   optimum, consistent cost model for all schedules) and ofi.py (correct CKS e_n, time-weighted depth).
 - Accepted: core.yaml simulator keys + impact_coef unit change; CONTRACTS §2 "Phase 3 additions".
 - Pytest note: `-q` in addopts + `-q` on CLI hides the summary line; use `-o addopts=""` for counts.
+
+### 2026-11-26 — done: reviewed + merged PR #5 (FX: Dukascopy loader)
+- Decoder checked (LZMA auto, record-size guard, crossed filter); 127 tests pass on main.
+- Dukascopy blocks the cloud egress. Decided: no more cloud pulls beyond one gentle retry in Phase 4; user's
+  always-on machine runs the CLI. Did not add wiki.dukascopy.com (not needed to stay within limits).
