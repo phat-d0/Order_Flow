@@ -28,6 +28,21 @@ alpaca:
   max_requests_per_min: 200          # free plan limit; verify
   page_limit: 10000
   ts_precision: "ns"
+  # --- added by Equities agent (Phase 2) ---
+  sort: "asc"                         # page order; storage re-sorts anyway
+  timeout_s: 30                       # per-request HTTP timeout
+  retry_backoff_s: [1, 2, 5, 10, 30]  # waits between retries on 429 / 5xx / connection errors
+  retry_statuses: [429, 500, 502, 503, 504]
+  max_pages: 2000                     # safety cap per fetch() call (2000 x 10k rows)
+  check_symbol: "SPY"                 # symbol used by check() (latest-trade probe)
+  user_agent: "flow-model-research/0.1"
+  rth_tz: "America/New_York"          # regular trading hours window used by the pull CLI
+  rth_open: "09:30"
+  rth_close: "16:00"
+  lookback_days: 10                   # pull CLI: how many calendar days back to look for the last full RTH day
+  full_day_probe_min: 1               # a day is "full" if trades exist in the last N minutes before rth_close
+  depth_probe_start: "2015-01-01"     # depth CLI: earliest date asked for when probing history depth
+  log_every_pages: 50                 # progress log cadence during fetch()
 
 dukascopy:
   base_url: "https://datafeed.dukascopy.com/datafeed"
